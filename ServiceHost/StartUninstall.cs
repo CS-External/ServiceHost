@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
@@ -41,7 +42,18 @@ namespace ServiceHost
 
         private static async Task RunLinux(string p_ServiceName)
         {
+            string l_Path = $"/etc/systemd/system/{p_ServiceName}.service";
 
+            if (!File.Exists(l_Path))
+            {
+                return;
+            }
+
+            Console.WriteLine($"Delete Service File {l_Path}");
+            File.Delete(l_Path);
+
+            Console.WriteLine("Reload Service");
+            await Util.RunExternalProcess("systemctl", "daemon-reload");
 
         }
 

@@ -43,7 +43,29 @@ namespace ServiceHost
 
         private static async Task RunLinux(string p_ServiceName)
         {
-            
+            string l_Path = $"/etc/systemd/system/{p_ServiceName}.service";
+
+            if (File.Exists(l_Path))
+            {
+                Console.WriteLine($"Service {p_ServiceName} already installed");
+                return;
+            }
+
+            string l_PathToExecutable = Path.Combine(AppContext.BaseDirectory, Assembly.GetEntryAssembly().GetName().Name);
+
+            Console.WriteLine($"Create Service File {l_Path}");
+
+            await File.WriteAllTextAsync(l_Path, "[Unit]\r\n" +
+                                      $"Description={p_ServiceName}\r\n" +
+                                      "[Service]\r\n" +
+                                      "Type=notify\r\n" +
+                                      $"WorkingDirectory={Directory.GetCurrentDirectory()}\r\n" +
+                                      $"ExecStart={l_PathToExecutable}\r\n" +
+                                      "[Install]\r\n" +
+                                      "WantedBy=multi-user.target");
+
+            Console.WriteLine("Reload Service");
+            await Util.RunExternalProcess("systemctl", "daemon-reload");
 
         }
 
@@ -52,7 +74,7 @@ namespace ServiceHost
             string l_Path = Path.Combine(AppContext.BaseDirectory, Assembly.GetEntryAssembly().GetName().Name);
             string l_FinalPath = Path.ChangeExtension(l_Path, ".exe");
             l_FinalPath = "\\\"" + l_FinalPath + "\\\" servicedir \\\"" + System.IO.Directory.GetCurrentDirectory() + "\\\"";
-            await Util.RunExternalProcess("sc", $"create {Util.Quote(p_ServiceName)} BinPath= {Util.Quote(l_FinalPath)}");
+            await Util.RunExternalProcess("sc", $"create {Util.Quote(p_ServiceName)} BinPath= {Util.Quote(l_FinalPath)} start= auto");
 
         }
     }
