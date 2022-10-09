@@ -1,19 +1,33 @@
+using System;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using ServiceHost;
 using ServiceHost.Managers;
+using System.Runtime.InteropServices;
+using ServiceHost.Utils;
 
-IHostBuilder l_Builder = Host.CreateDefaultBuilder(args);
-l_Builder.ConfigureServices((p_Context, p_Services) =>
+
+if (args.Length == 0)
 {
-    p_Services.AddHostedService<Worker>();
-    p_Services.AddSingleton<FileManager>();
-    p_Services.AddSingleton<UpdateManager>();
-    p_Services.AddSingleton<ProcessManager>();
-    p_Services.Configure<ProcessOptions>(p_Context.Configuration.GetSection(nameof(ProcessOptions)));
-});
-
-IHost l_Host = l_Builder.Build();
-
-
-await l_Host.RunAsync();
+    await StartService.Run(args);
+}
+else
+if (args[0].ToLower() == "servicedir")
+{
+    System.IO.Directory.SetCurrentDirectory(args[1]);
+    await StartService.Run(args);
+}
+else
+if (args[0].ToLower() == "install")
+{
+    await StartInstall.Run(args);
+}
+else
+if (args[0].ToLower() == "uninstall")
+{
+    await StartUninstall.Run(args);
+}
+else
+{
+    await StartHelp.Run();
+}

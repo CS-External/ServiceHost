@@ -9,10 +9,10 @@ public class ProcessOptions
     public String AppArguments { get; set; }
     public Boolean UseCustomWorkDirectory { get; set; }
     public Boolean CheckForUpdates { get; set; }
-    public List<String> UpdateFilesToKeep { get; set; }
+    public List<String> FilesToKeepOnUpdate { get; set; }
 
     public override string ToString()
     {
-        return $"{nameof(App)}: {App}, {nameof(UseCustomWorkDirectory)}: {UseCustomWorkDirectory}, {nameof(CheckForUpdates)}: {CheckForUpdates}, {nameof(UpdateFilesToKeep)}: {UpdateFilesToKeep}";
+        return $"{nameof(App)}: {App}, {nameof(UseCustomWorkDirectory)}: {UseCustomWorkDirectory}, {nameof(CheckForUpdates)}: {CheckForUpdates}, {nameof(FilesToKeepOnUpdate)}: {FilesToKeepOnUpdate}";
     }
 }

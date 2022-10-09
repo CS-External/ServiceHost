@@ -1,4 +1,6 @@
-﻿using System;
+﻿using Microsoft.Extensions.Configuration;
+using System;
+using System.Diagnostics;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -7,6 +9,52 @@ namespace ServiceHost.Utils;
 
 public static class Util
 {
+    public static String Quote(String p_Text)
+    {
+        return "\"" + p_Text + "\"";
+    }
+
+    public static async Task RunExternalProcess(String p_Cmd, String p_Args)
+    {
+        Console.WriteLine($"Run {p_Cmd} {p_Args}");
+        Console.WriteLine("");
+
+        ProcessStartInfo l_StartInfo = new ProcessStartInfo();
+        l_StartInfo.FileName = p_Cmd;
+
+        if (!String.IsNullOrWhiteSpace(p_Args))
+            l_StartInfo.Arguments = p_Args;
+
+        l_StartInfo.RedirectStandardInput = true;
+        l_StartInfo.RedirectStandardError = true;
+        l_StartInfo.RedirectStandardOutput = true;
+        l_StartInfo.CreateNoWindow = true;
+        l_StartInfo.UseShellExecute = false;
+
+        Process l_Process = Process.Start(l_StartInfo);
+        try
+        {
+            l_Process.OutputDataReceived += ProcessOnOutputDataReceived;
+            l_Process.BeginOutputReadLine();
+            l_Process.BeginErrorReadLine();
+
+            await l_Process.WaitForExitAsync();
+        }
+        finally
+        {
+            l_Process.OutputDataReceived -= ProcessOnOutputDataReceived;
+            l_Process.Dispose();
+        }
+        
+    }
+
+    private static void ProcessOnOutputDataReceived(object p_Sender, DataReceivedEventArgs p_Args)
+    {
+        if (String.IsNullOrWhiteSpace(p_Args.Data))
+            return;
+
+        Console.WriteLine(p_Args.Data);
+    }
 
     public static async Task DeleteDirectoryContent(String p_Path)
     {
@@ -90,5 +138,35 @@ public static class Util
                 File.Copy(l_NewPath, l_NewPath.Replace(p_SourcePath, p_TargetPath), true);
             }
         });
+    }
+
+    public static void CreateDefaultConfigFile()
+    {
+        if (File.Exists("appsettings.json"))
+            return;
+
+        Console.WriteLine("Create default appsettings.json");
+
+        File.WriteAllText("appsettings.json", "{\r\n  \"Logging\": {\r\n    \"LogLevel\": {\r\n      \"Default\": \"Information\",\r\n      \"Microsoft.Hosting.Lifetime\": \"Information\"\r\n    }\r\n  },\r\n  \"ProcessOptions\": {\r\n    \"App\": \"\", // Name of the Exectable to start \r\n    \"AppArguments\": \"\", // Arguments for the Exectable\r\n    \"UseCustomWorkDirectory\": false, // Exectable has different working Directory\r\n    \"CheckForUpdates\": false, // Check for new Versions in the Update Directory\r\n    \"FilesToKeepOnUpdate\": [] // Files which are not deleted durring update\r\n  },\r\n  \"ServiceOptions\": {\r\n    \"ServiceName\":  \"\" // Name of the Service which use by the install command\r\n  }\r\n}");
+            
+    }
+
+    public static string ReadServiceNameFromConfig()
+    {
+
+        if (!File.Exists("appsettings.json"))
+            return "";
+
+        ConfigurationBuilder l_Builder = new ConfigurationBuilder();
+        l_Builder.SetBasePath(Directory.GetCurrentDirectory());
+        l_Builder.AddJsonFile("appsettings.json");
+        IConfigurationRoot l_Root = l_Builder.Build();
+
+        IConfigurationSection l_ConfigurationSection = l_Root.GetSection(nameof(ServiceOptions));
+
+        if (!l_ConfigurationSection.Exists())
+            return string.Empty;
+
+        return l_ConfigurationSection.GetValue<String>(nameof(ServiceOptions.ServiceName));
     }
 }
