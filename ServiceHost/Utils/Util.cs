@@ -2,6 +2,7 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -56,7 +57,7 @@ public static class Util
         Console.WriteLine(p_Args.Data);
     }
 
-    public static async Task DeleteDirectoryContent(String p_Path)
+    public static async Task DeleteDirectoryContent(String p_Path, Func<FileSystemInfo, bool> p_Filter)
     {
         if (Directory.Exists(p_Path))
         {
@@ -67,21 +68,7 @@ public static class Util
                 l_Count++;
                 try
                 {
-                    string[] l_Directories = Directory.GetDirectories(p_Path);
-
-                    foreach (string l_Directory in l_Directories)
-                    {
-                        Directory.Delete(Path.Combine(p_Path, l_Directory), true);    
-                    }
-
-                    string[] l_Files = Directory.GetFiles(p_Path);
-
-                    foreach (string l_File in l_Files)
-                    {
-                        File.Delete(Path.Combine(p_Path, l_File));
-                    }
-
-
+                    DoDeleteDirectoryContent(p_Path, p_Filter);
                     break;
                 }
                 catch (Exception)
@@ -99,8 +86,67 @@ public static class Util
             
         }
     }
-    
-    
+
+    private static void DoDeleteDirectoryContent(string p_Path, Func<FileSystemInfo, bool> p_Filter)
+    {
+        if (!Directory.Exists(p_Path))
+            return;
+
+        if (p_Filter == null)
+        {
+            // Use Fast Way without filter
+
+            string[] l_Directories = Directory.GetDirectories(p_Path);
+
+            foreach (string l_Directory in l_Directories)
+            {
+                Directory.Delete(l_Directory, true);
+            }
+
+            string[] l_Files = Directory.GetFiles(p_Path);
+
+            foreach (string l_File in l_Files)
+            {
+                File.Delete(l_File);
+            }
+        }
+        else
+        {
+            string[] l_Directories = Directory.GetDirectories(p_Path);
+
+            foreach (string l_Directory in l_Directories)
+            {
+                // Check if Directory is excluded
+                if (!p_Filter(new DirectoryInfo(l_Directory)))
+                    continue;
+
+                DoDeleteDirectoryContent(l_Directory, p_Filter);
+            }
+
+            string[] l_Files = Directory.GetFiles(p_Path);
+
+            foreach (string l_File in l_Files)
+            {
+
+                // Check if File is excluded
+                if (!p_Filter(new FileInfo(l_File)))
+                    continue;
+
+                File.Delete(l_File);
+            }
+
+            if (!Directory.GetDirectories(p_Path).Any() && !Directory.GetFiles(p_Path).Any())
+            {
+                // Delete if empty
+                Directory.Delete(p_Path);
+            }
+        }
+
+
+        
+    }
+
+
     public static Action<T1, T2> Debounce<T1, T2>(this Action<T1, T2> p_Func, TimeSpan p_Time)
     {
         CancellationTokenSource l_CancelTokenSource = null;
@@ -147,7 +193,7 @@ public static class Util
 
         Console.WriteLine("Create default appsettings.json");
 
-        File.WriteAllText("appsettings.json", "{\r\n  \"Logging\": {\r\n    \"LogLevel\": {\r\n      \"Default\": \"Information\",\r\n      \"Microsoft.Hosting.Lifetime\": \"Information\"\r\n    }\r\n  },\r\n  \"ProcessOptions\": {\r\n    \"App\": \"\", // Name of the Exectable to start \r\n    \"AppArguments\": \"\", // Arguments for the Exectable\r\n    \"UseCustomWorkDirectory\": false, // Exectable has different working Directory\r\n    \"CheckForUpdates\": false, // Check for new Versions in the Update Directory\r\n    \"FilesToKeepOnUpdate\": [] // Files which are not deleted durring update\r\n  },\r\n  \"ServiceOptions\": {\r\n    \"ServiceName\":  \"\" // Name of the Service which use by the install command\r\n  }\r\n}");
+        File.WriteAllText("appsettings.json", "{\r\n  \"Logging\": {\r\n    \"LogLevel\": {\r\n      \"Default\": \"Information\",\r\n      \"Microsoft.Hosting.Lifetime\": \"Information\"\r\n    }\r\n  },\r\n  \"ProcessOptions\": {\r\n    \"App\": \"\", // Name of the Exectable to start \r\n    \"AppArguments\": \"\", // Arguments for the Exectable\r\n    \"UseCustomWorkDirectory\": false, // Exectable has different working Directory\r\n    \"CheckForUpdates\": false, // Check for new Versions in the Update Directory\r\n    \"FilesToKeepOnUpdate\": [] // Files which are not deleted durring update. Example data.db or for Directory in Windows data\\ or Linux data/ \r\n  },\r\n  \"ServiceOptions\": {\r\n    \"ServiceName\":  \"\" // Name of the Service which use by the install command\r\n  }\r\n}");
             
     }
 

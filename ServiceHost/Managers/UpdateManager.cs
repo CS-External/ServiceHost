@@ -104,7 +104,7 @@ public class UpdateManager: IDisposable
 
     private async Task ExtractUpdateToApplication()
     {
-        await m_FileManager.CleanUpApp();
+        await m_FileManager.CleanUpApp(false);
         
         string l_ZipFile = Directory.EnumerateFiles(m_FileManager.UpdatePath).First();
 
@@ -148,7 +148,7 @@ public class UpdateManager: IDisposable
 
     private async Task CopyUpdateToApplication()
     {
-        await m_FileManager.CleanUpApp();  
+        await m_FileManager.CleanUpApp(false);  
         await Utils.Util.CopyFilesRecursively(m_FileManager.UpdatePath, m_FileManager.AppPath);
     }
 

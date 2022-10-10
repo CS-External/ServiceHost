@@ -50,13 +50,72 @@ public class FileManager
             Directory.CreateDirectory(p_Path);    
     }
     
-    public async Task CleanUpApp()
+    public async Task CleanUpApp(bool p_DeleteAll)
     {
-        ProcessOptions l_Options = m_Options.CurrentValue;
+        if (p_DeleteAll)
+        {
+            await Util.DeleteDirectoryContent(AppPath, null);
+        }
+        else
+        {
+            ProcessOptions l_Options = m_Options.CurrentValue;
+
+            if (l_Options.FilesToKeepOnUpdate == null || l_Options.FilesToKeepOnUpdate.Count == 0)
+            {
+                await Util.DeleteDirectoryContent(AppPath, null);
+            }
+
+            await Util.DeleteDirectoryContent(AppPath, (p_Info) =>
+            {
+                string l_CurrentDirectory = AppPath;
+
+                foreach (string l_Item in l_Options.FilesToKeepOnUpdate)
+                {
+                    if (String.IsNullOrWhiteSpace(l_Item))
+                        continue;
+
+                    string l_CompletePath = Path.Combine(l_CurrentDirectory, l_Item);
+
+                    if (l_Item.EndsWith(Path.DirectorySeparatorChar))
+                    {
+                        // Its a Dir
+                        if (p_Info is DirectoryInfo)
+                        {
+                            string l_Name = p_Info.FullName;
+
+                            if (!l_Name.EndsWith(Path.DirectorySeparatorChar))
+                                l_Name = l_Name + Path.DirectorySeparatorChar;
+
+                            if (!l_CompletePath.EndsWith(Path.DirectorySeparatorChar))
+                                l_CompletePath = l_CurrentDirectory + Path.DirectorySeparatorChar;
+
+                            if (l_CompletePath == l_Name)
+                                return false;
+                        }
+
+                    }
+                    else
+                    {
+                        // Its a file
+                        if (p_Info is FileInfo)
+                        {
+
+                            if (p_Info.FullName == l_CompletePath)
+                                return false;
+
+                        }
+                    }
+
+                }
+
+                return true;
 
 
+            });
+        }
 
-        await Util.DeleteDirectoryContent(AppPath);
+        
+        
     }
 
     public async Task CopyApplicationToBackup()
@@ -71,17 +130,17 @@ public class FileManager
     
     private async Task CleanUpAppBackup()
     {
-        await Util.DeleteDirectoryContent(AppBackupPath);
+        await Util.DeleteDirectoryContent(AppBackupPath, null);
     }
 
     public async Task CleanUpUpdate()
     {
-        await Util.DeleteDirectoryContent(UpdatePath);
+        await Util.DeleteDirectoryContent(UpdatePath, null);
     }
 
     public async Task CopyBackupToApplication()
     {
-        await CleanUpApp();
+        await CleanUpApp(true);
         EnsureDirectoryExists(AppBackupPath);
         await Util.CopyFilesRecursively(AppBackupPath, AppPath);     
     }
