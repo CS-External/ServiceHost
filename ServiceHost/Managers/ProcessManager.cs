@@ -85,7 +85,7 @@ public class ProcessManager
             l_StartInfo.EnvironmentVariables.Add("ServiceHostUpdatePath", m_FileManager.UpdatePath);
         }
 
-        await FixExecutionPermission();
+        await FixExecutionPermission(l_StartInfo);
         ApplyDefaultSettings(l_StartInfo);
         m_Process = Process.Start(l_StartInfo);
 
@@ -99,18 +99,18 @@ public class ProcessManager
         m_Process.BeginErrorReadLine();
     }
 
-    private async Task FixExecutionPermission()
+    private async Task FixExecutionPermission(ProcessStartInfo p_StartInfo)
     {
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
         {
             try
             {
-                m_Logger.LogInformation("Fix execution permission for {p_File}", m_Process.StartInfo.FileName);
-                await Util.RunExternalProcess("chmod", $"+x {m_Process.StartInfo.FileName}");
+                m_Logger.LogInformation("Fix execution permission for {p_File}", p_StartInfo.FileName);
+                await Util.RunExternalProcess("chmod", $"+x {p_StartInfo.FileName}");
             }
             catch (Exception e)
             {
-                m_Logger.LogWarning(e, "Unable to fix execution permission for {p_File}", m_Process.StartInfo.FileName);
+                m_Logger.LogWarning(e, "Unable to fix execution permission for {p_File}", p_StartInfo.FileName);
             }
             
         }
