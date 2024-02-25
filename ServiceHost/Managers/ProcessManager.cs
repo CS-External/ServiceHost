@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using ServiceHost.Utils;
 
 namespace ServiceHost.Managers;
 
@@ -91,10 +92,29 @@ public class ProcessManager
             throw new Exception($"Unable to Start Application {l_StartInfo.FileName}");
 
         AttachToProcessTree();
+        await FixExecutionPermission();
         m_Process.OutputDataReceived += ProcessOnOutputDataReceived;
         m_Process.Exited += ProcessOnExited;
         m_Process.BeginOutputReadLine();
         m_Process.BeginErrorReadLine();
+    }
+
+    private async Task FixExecutionPermission()
+    {
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+        {
+            try
+            {
+                m_Logger.LogInformation("Fix execution permission for {p_File}", m_Process.StartInfo.FileName);
+                await Util.RunExternalProcess("chmod", $"+x {m_Process.StartInfo.FileName}");
+            }
+            catch (Exception e)
+            {
+                m_Logger.LogWarning(e, "Unable to fix execution permission for {p_File}", m_Process.StartInfo.FileName);
+            }
+            
+        }
+        
     }
 
     private void ProcessOnExited(object p_Sender, EventArgs p_Args)
