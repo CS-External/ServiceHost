@@ -85,6 +85,7 @@ public class ProcessManager
             l_StartInfo.EnvironmentVariables.Add("ServiceHostUpdatePath", m_FileManager.UpdatePath);
         }
 
+        await FixExecutionPermission();
         ApplyDefaultSettings(l_StartInfo);
         m_Process = Process.Start(l_StartInfo);
 
@@ -92,7 +93,6 @@ public class ProcessManager
             throw new Exception($"Unable to Start Application {l_StartInfo.FileName}");
 
         AttachToProcessTree();
-        await FixExecutionPermission();
         m_Process.OutputDataReceived += ProcessOnOutputDataReceived;
         m_Process.Exited += ProcessOnExited;
         m_Process.BeginOutputReadLine();
