@@ -1,12 +1,10 @@
 ﻿using Microsoft.Extensions.Hosting;
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.InteropServices;
-using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using ServiceHost.Logging;
 using ServiceHost.Managers;
 using ServiceHost.Utils;
 
@@ -19,6 +17,7 @@ namespace ServiceHost
         {
             Console.WriteLine("Starting ServiceHost");
 
+            Serilog.Debugging.SelfLog.Enable(Console.Error);
             Util.CreateDefaultConfigFile();
 
             IHostBuilder l_Builder = Host.CreateDefaultBuilder(p_Args);
@@ -32,6 +31,7 @@ namespace ServiceHost
             }).ConfigureLogging((p_Context, p_LoggingBuilder) =>
             {
                 p_LoggingBuilder.AddFile("Logs/{Date}.txt", fileSizeLimitBytes: 100 * 1024 * 1024); // 100mb
+                p_LoggingBuilder.ConnectToGrafanaLoki(p_Context.Configuration.GetSection("Logging:GrafanaLoki"), p_Context.Configuration.GetSection("ServiceOptions:ServiceName").Value, p_Context.Configuration.GetSection("ProcessOptions:App").Value);
             });
 
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
